@@ -1,0 +1,101 @@
+service: parking-lot-management
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+  region: us-east-1  # Change to your preferred region
+  stage: ${opt:stage, 'dev'}
+
+  # IAM permissions for DynamoDB
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [ParkingTable, Arn]
+
+  # Environment variables
+  environment:
+    PARKING_TABLE: ${self:custom.tableName}
+
+# Custom variables
+custom:
+  tableName: parking-records-${self:provider.stage}
+
+functions:
+  parkingApi:
+    handler: parking_system.lambda_handler
+    events:
+      - http:
+          path: /entry
+          method: post
+          cors: true
+      - http:
+          path: /exit
+          method: post
+          cors: true
+      - http:
+          path: /{proxy+}
+          method: options
+          cors: true
+
+# CloudFormation resources
+resources:
+  Resources:
+    ParkingTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: ticketId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ticketId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        # Optional: Enable Point-in-Time Recovery
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        # Optional: Enable deletion protection for production
+        DeletionProtectionEnabled: false
+
+  # Output the API Gateway URL
+  Outputs:
+    ApiGatewayRestApi:
+      Value:
+        Ref: ApiGatewayRestApi
+      Export:
+        Name: ${self:service}-${self:provider.stage}-restApiId
+
+    ApiGatewayUrl:
+      Value:
+        Fn::Join:
+          - ''
+          - - 'https://'
+            - Ref: ApiGatewayRestApi
+            - '.execute-api.'
+            - ${self:provider.region}
+            - '.amazonaws.com/'
+            - ${self:provider.stage}
+      Export:
+        Name: ${self:service}-${self:provider.stage}-url
+
+plugins:
+  - serverless-python-requirements
+
+# Package configuration
+package:
+  patterns:
+    - '!node_modules/**'
+    - '!.git/**'
+    - '!.pytest_cache/**'
+    - '!tests/**'

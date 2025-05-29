@@ -1,0 +1,26 @@
+{
+  "name": "parking-lot-management",
+  "version": "1.0.0",
+  "description": "Serverless parking lot management system with AWS Lambda",
+  "main": "parking_system.py",
+  "scripts": {
+    "deploy": "serverless deploy",
+    "deploy:prod": "serverless deploy --stage prod",
+    "remove": "serverless remove",
+    "info": "serverless info",
+    "logs": "serverless logs -f parkingApi"
+  },
+  "keywords": [
+    "serverless",
+    "aws",
+    "lambda",
+    "parking",
+    "cloud"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^3.38.0",
+    "serverless-python-requirements": "^6.0.0"
+  }
+}
